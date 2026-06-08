@@ -1,0 +1,18 @@
+{
+  "auth": {
+    "applicationToken": "eyJhbGciOiJSUzUxMiIsImtpZCI6IjI4NWY4MTExNWFhMDcyYWNiMTQ4MTBhMDQxYzNjNmQ4M2UyN2VjZWE1MDdjODUzNTRjYWVmYzRmOGRkM2UxZDIiLCJ0eXAiOiJhdCtqd3QifQ.eyJpc3MiOiJodHRwczovL2lkZW50aXR5LXN0YWdlLnRlYW1zeXN0ZW0uY29tIiwibmJmIjoxNzgwOTU2NDY2LCJpYXQiOjE3ODA5NTY0NjYsImV4cCI6MTc4MDk4NTI2NiwiYXVkIjoiRW5nYWdlbWVudCIsInNjb3BlIjpbIm9wZW5pZCIsIkVuZ2FnZW1lbnQiLCJvZmZsaW5lX2FjY2VzcyJdLCJhbXIiOlsiZXh0ZXJuYWwiXSwiY2xpZW50X2lkIjoiMTdjMGY1NGQtMjdiNC00NWZjLTgyNjEtMDFlNjlkMTZjOTEwIiwic3ViIjoiM2UxNzEzZjItOGFjMC00MzkyLTg5MmItNTFiYTAwOGQ4ZThmIiwiYXV0aF90aW1lIjoxNzgwOTU2MzEzLCJpZHAiOiJ0ZWFtc3lzdGVtIiwibmFtZSI6IklzYWNjbyBCb3NpbyIsImdpdmVuX25hbWUiOiJJc2FjY28iLCJmYW1pbHlfbmFtZSI6IkJvc2lvIiwiZW1haWwiOiJpLmJvc2lvQHRlYW1zeXN0ZW0uY29tIiwibmNzX2lkIjoiYzI2NGRkNmQtOGVjNC01NjZkLThkMjgtNWM2YjcxZTMzY2VkIiwic2lkIjoiRTIwOEVFOEJENjVCMTlCMjNERDQ0Nzc1MUFDNENEMEQifQ.XsFtjRabwRqlnr49OBGyGXkRc6aPKKkrzaZpFI_-pOSw6E4ycg26Cy1rvHm8tUH_RbGbO8DC1QYOpLY_vZHTyKqWWiChOVTImmlRWHlleTWLU0Bl8nsZ81Aie0ayDouZPUdZR1kO5Yx6KIAaHXkISJEBqVTkq64MmoCEl3TnzweMu4TQAxVJwrebbHeOx_YR16NxZpsyzFZisYGhbB7hzwZjLRfdx6WD8UvNIohGXhP4Rv2xquDUOxp79OD1czMag6Tt7ZoKXB_DDVOao3Z_uXbPGAOmHJH9t2s0nqhS4FjzNxYIeOAs5dgtfNf63lXLM2Gp_3bFSxbFT97_qyG5mQ"
+  },
+  "product": {
+    "id": "canned-product-from-host-config",
+    "code": "playground",
+    "name": "Playground",
+    "description": "Playground",
+    "status": "published"
+  },
+  "user": {
+    "id": "3e1713f2-8ac0-4392-892b-51ba008d8e8f",
+    "firstName": "Isacco",
+    "lastName": "Bosio",
+    "email": "i.bosio@teamsystem.com"
+  }
+}
