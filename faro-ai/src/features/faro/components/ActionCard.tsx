@@ -101,10 +101,10 @@ export default function ActionCard({ a, place, onDragStart, onDragEnd, dragging,
       sx={{
         p: 1.5,
         cursor: "grab",
-        borderRadius: 2,
+        borderRadius: "8px",
         border: "1px solid",
-        borderColor: a.urgency?.level === "r" && a.phase !== "done" ? "error.light" : "divider",
-        boxShadow: "0 1px 2px rgba(20,40,60,.06)",
+        borderColor: a.urgency?.level === "r" && a.phase !== "done" ? "error.light" : "#9EAAB3",
+        boxShadow: "none",
       }}
     >
       {a.urgency && (

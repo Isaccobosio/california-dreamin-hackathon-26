@@ -6,8 +6,8 @@ import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { ICON } from "../data/icons";
 import type { View } from "../types";
 
-const NAVY = "#0d2440";
-const NAVY_RAIL = "#0a1c33";
+const NAVY = "#0E2A4E";
+const NAVY_RAIL = "#0a2038";
 
 interface AppShellProps {
   view: View;
@@ -23,12 +23,12 @@ function TopButton({ icon, label, active, onClick }: { icon: IconDefinition; lab
       startIcon={<FontAwesomeIcon icon={icon} />}
       onClick={onClick}
       sx={{
-        color: "#fff",
+        color: active ? NAVY : "#fff",
         borderRadius: 5,
         border: "1px solid",
-        borderColor: active ? "#fff" : "rgba(255,255,255,.35)",
-        bgcolor: active ? "rgba(255,255,255,.16)" : "transparent",
-        "&:hover": { bgcolor: "rgba(255,255,255,.12)", borderColor: "#fff" },
+        borderColor: active ? "#fff" : "rgba(255,255,255,.4)",
+        bgcolor: active ? "#fff" : "transparent",
+        "&:hover": { bgcolor: active ? "#fff" : "rgba(255,255,255,.12)" },
       }}
     >
       {label}

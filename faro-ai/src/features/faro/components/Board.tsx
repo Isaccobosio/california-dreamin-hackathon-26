@@ -36,7 +36,7 @@ export default function Board({ actions, hideComm, setHideComm, dnd, handlers, h
         onDragOver={(e: React.DragEvent) => allowDrop(e, "inbox")}
         onDragLeave={() => leave("inbox")}
         onDrop={(e: React.DragEvent) => onDrop(e, "inbox")}
-        sx={{ p: 1.75, borderRadius: 2 }}
+        sx={{ p: 1.75, borderRadius: "8px", borderColor: "#9EAAB3" }}
       >
         <Tooltip title="Faro è incerto a chi darle — trascinale tu" arrow placement="right">
           <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1.25, mb: 1.25 }}>

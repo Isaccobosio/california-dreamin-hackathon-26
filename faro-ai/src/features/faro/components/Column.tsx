@@ -38,7 +38,7 @@ export default function Column({ meta, items, dnd, handlers, hideDone, toggleHid
       onDragOver={(e: React.DragEvent) => allowDrop(e, meta.key)}
       onDragLeave={() => leave(meta.key)}
       onDrop={(e: React.DragEvent) => onDrop(e, meta.key)}
-      sx={{ borderRadius: 2, display: "flex", flexDirection: "column", minHeight: 0, bgcolor: "action.hover" }}
+      sx={{ borderRadius: "8px", borderColor: "#9EAAB3", display: "flex", flexDirection: "column", minHeight: 0, bgcolor: "action.hover" }}
     >
       <Box sx={{ p: 1.5, display: "flex", alignItems: "center", gap: 1.25, borderBottom: "1px solid", borderColor: "divider" }}>
         <Avatar sx={{ width: 36, height: 36, borderRadius: 1.25, fontSize: 13, fontWeight: 800, bgcolor: meta.color }}>{meta.initial}</Avatar>
