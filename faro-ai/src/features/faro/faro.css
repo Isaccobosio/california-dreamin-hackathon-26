@@ -3,10 +3,11 @@
    qui solo token brand Faro, geometrie di board, scrollbar e DnD. */
 
 :root {
-  --faro: #7745ec;
-  --faro-2: #9a78ff;
-  --faro-soft: #eee9fc;
-  --faro-strong: #5a2dc9;
+  /* Identità Faro: navy TeamSystem (tiles, sparkle, header chat, outline drop). */
+  --faro: #0d2440;
+  --faro-2: #1d4e7e;
+  --faro-soft: #eaf1f8;
+  --faro-strong: #0a1c33;
 }
 
 .col-body::-webkit-scrollbar,

@@ -4,6 +4,8 @@ import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { ICON } from "../data/icons";
 import { CTA } from "../data/seed";
 import { faroContainedSx } from "../theme/faroSx";
+import SourcesLink from "./SourcesLink";
+import NormoBadge from "./NormoBadge";
 import type { ActionKind, ColumnKey, FaroAction, UrgencyLevel } from "../types";
 
 /** Handler richiesti da una card per gli stati interattivi. */
@@ -14,10 +16,15 @@ export interface CardHandlers {
   openNote: (id: string) => void;
 }
 
-const URG: Record<UrgencyLevel, string> = { r: "error.main", a: "warning.main", g: "success.main" };
+/** Stile della chip di urgenza in testa alla card (sfondo tenue + testo). */
+const URG_CHIP: Record<UrgencyLevel, { bgcolor: string; color: string }> = {
+  r: { bgcolor: "#fdecea", color: "#c62828" },
+  a: { bgcolor: "#fff4e0", color: "#b26a00" },
+  g: { bgcolor: "#e7f6ec", color: "#1b7e3c" },
+};
 
 /** Tipi di azione che si "saldano" (vs. dettaglio generico) in colonna Io. */
-const SETTLE_KINDS: ActionKind[] = ["sollecito", "incasso", "ricorrente", "sdi"];
+const SETTLE_KINDS: ActionKind[] = ["sollecito", "incasso", "ricorrente", "sdi", "passiva"];
 
 interface ActionCardProps {
   a: FaroAction;
@@ -33,22 +40,11 @@ interface StatusLineProps {
   color: string;
   text: string | null;
   spin?: boolean;
-  inline?: boolean;
 }
 
-function StatusLine({ icon, color, text, spin, inline }: StatusLineProps) {
+function StatusLine({ icon, color, text, spin }: StatusLineProps) {
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 0.9,
-        fontSize: 12,
-        fontWeight: 700,
-        color,
-        ...(inline ? {} : { borderTop: "1px dashed", borderColor: "divider", pt: 1.1, mt: 1 }),
-      }}
-    >
+    <Box sx={{ display: "flex", alignItems: "center", gap: 0.9, fontSize: 12.5, fontWeight: 700, color, mt: 1 }}>
       <FontAwesomeIcon icon={icon} spin={spin} />
       <span>{text}</span>
     </Box>
@@ -58,26 +54,27 @@ function StatusLine({ icon, color, text, spin, inline }: StatusLineProps) {
 export default function ActionCard({ a, place, onDragStart, onDragEnd, dragging, handlers }: ActionCardProps) {
   const { runFaro, openDetail, openSettle, openNote } = handlers;
 
-  const foot = () => {
+  const statusLine = () => {
     if (a.phase === "work") return <StatusLine icon={ICON.clock} color="var(--faro-strong)" text={a.doneMsg} spin />;
     if (a.phase === "ask") return <StatusLine icon={ICON.clock} color="var(--faro-strong)" text="In attesa della tua conferma in chat…" />;
     if (a.phase === "done") return <StatusLine icon={ICON.check} color={place === "comm" ? "success.dark" : "success.main"} text={a.doneMsg} />;
+    if (a.phase === "taken" && place === "comm") return <StatusLine icon={ICON.clock} color="success.dark" text="Presa in carico da Luca" />;
+    return null;
+  };
+
+  const actionButton = () => {
     if (a.phase === "taken" && place === "comm")
       return (
-        <Box sx={{ borderTop: "1px dashed", borderColor: "divider", pt: 1.2, mt: 0.5 }}>
-          <StatusLine icon={ICON.clock} color="success.dark" text="Presa in carico da Luca" inline />
-          <Button fullWidth size="small" variant="outlined" sx={{ mt: 1 }} startIcon={<FontAwesomeIcon icon={ICON.history} />} onClick={() => openNote(a.id)}>
-            {a.thread && a.thread.length ? `Note (${a.thread.length})` : "Aggiungi nota"}
-          </Button>
-        </Box>
+        <Button size="small" variant="contained" startIcon={<FontAwesomeIcon icon={ICON.history} />} onClick={() => openNote(a.id)}>
+          {a.thread && a.thread.length ? `Note (${a.thread.length})` : "Aggiungi una nota"}
+        </Button>
       );
     if (a.phase === "todo" && place === "me")
       return (
         <Button
-          fullWidth
           size="small"
           variant="contained"
-          sx={{ mt: 1 }}
+          startIcon={SETTLE_KINDS.includes(a.kind) ? <FontAwesomeIcon icon={ICON.check} /> : undefined}
           onClick={() => (SETTLE_KINDS.includes(a.kind) ? openSettle(a.id) : openDetail(a.id))}
         >
           {SETTLE_KINDS.includes(a.kind) ? "Segna come saldata" : CTA[a.kind] || "Apri"}
@@ -85,8 +82,8 @@ export default function ActionCard({ a, place, onDragStart, onDragEnd, dragging,
       );
     if (a.phase === "todo" && place === "faro")
       return (
-        <Button fullWidth size="small" variant="contained" sx={{ ...faroContainedSx, mt: 1 }} onClick={() => runFaro(a.id)}>
-          Lascia fare a Faro
+        <Button size="small" variant="contained" sx={faroContainedSx} onClick={() => runFaro(a.id)}>
+          Delega a Faro
         </Button>
       );
     return null;
@@ -98,38 +95,35 @@ export default function ActionCard({ a, place, onDragStart, onDragEnd, dragging,
       onDragStart={(e: React.DragEvent) => onDragStart(e, a.id)}
       onDragEnd={onDragEnd}
       onClick={(e: React.MouseEvent) => {
-        if (!(e.target as HTMLElement).closest("button")) openDetail(a.id);
+        if (!(e.target as HTMLElement).closest("button, a")) openDetail(a.id);
       }}
       className={dragging ? "card-dragging" : ""}
       sx={{
         p: 1.5,
         cursor: "grab",
-        borderRadius: 1.5,
+        borderRadius: 2,
         border: "1px solid",
-        borderColor: "divider",
+        borderColor: a.urgency?.level === "r" && a.phase !== "done" ? "error.light" : "divider",
         boxShadow: "0 1px 2px rgba(20,40,60,.06)",
-        ...(a.urgency && a.urgency.level === "r" && a.phase !== "done" ? { borderColor: "error.light" } : {}),
       }}
     >
-      <Box sx={{ display: "flex", gap: 1.25, alignItems: "flex-start" }}>
-        <Box sx={{ width: 30, height: 30, borderRadius: 1, flex: "none", display: "grid", placeItems: "center", bgcolor: "action.hover", color: "text.secondary" }}>
-          <FontAwesomeIcon icon={ICON[a.kind]} />
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 14, lineHeight: 1.25 }}>{a.title}</Typography>
-          {a.urgency && (
-            <Typography sx={{ fontSize: 12, fontWeight: 700, mt: 0.4, color: URG[a.urgency.level] }}>{a.urgency.text}</Typography>
-          )}
-        </Box>
-        <Typography sx={{ fontWeight: 800, fontSize: 13, whiteSpace: "nowrap" }}>{a.amount}</Typography>
-      </Box>
-
-      {!a.bare && (
-        <Box sx={{ mt: 1 }}>
-          <Chip size="small" variant="outlined" label={a.tag[0]} />
-        </Box>
+      {a.urgency && (
+        <Chip size="small" label={a.urgency.text} sx={{ ...URG_CHIP[a.urgency.level], fontWeight: 700, height: 22, mb: 1.25 }} />
       )}
-      {foot()}
+
+      <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+        <Typography sx={{ flex: 1, minWidth: 0, fontWeight: 700, fontSize: 15, lineHeight: 1.3 }}>{a.title}</Typography>
+        <Typography sx={{ fontWeight: 800, fontSize: 15, whiteSpace: "nowrap" }}>{a.amount}</Typography>
+      </Box>
+      <Typography sx={{ fontSize: 12.5, color: "text.secondary", mt: 0.25 }}>{a.client}</Typography>
+
+      {a.normo === "verified" && <NormoBadge onDeepen={() => openDetail(a.id)} />}
+      {statusLine()}
+
+      <Box sx={{ mt: 1.25, pt: 1, borderTop: "1px solid", borderColor: "divider", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+        <SourcesLink sources={a.sources} />
+        {actionButton()}
+      </Box>
     </Card>
   );
 }

@@ -18,6 +18,8 @@ export function faroHandle(a: Pick<SeedAction, "kind" | "client" | "amount">): {
       return { done: "Corretta e ritrasmessa ✓", text: "Era un errore di data (cod. 00404). Corretta e ritrasmessa allo SDI. ✓" };
     case "f24":
       return { done: "Delega F24 predisposta ✓", text: "Ho predisposto la delega F24 per " + a.amount + " con addebito al 16 giugno. ✓" };
+    case "passiva":
+      return { done: "Fattura fornitore approvata ✓", text: "Ho controllato la fattura di " + a.client + " (" + a.amount + "): importi e IVA corretti. Approvata e registrata. ✓" };
     default:
       return { done: "Fatto ✓", text: "Fatto ✓" };
   }
@@ -40,6 +42,8 @@ export function explainFaro(a: FaroAction): string {
       return "La fattura di " + a.client + " è stata scartata dallo SDI (cod. 00404). Posso correggere e ritrasmettere.";
     case "f24":
       return "È un F24 di " + a.amount + " in scadenza il 16/6. Posso predisporre la delega.";
+    case "passiva":
+      return "È una fattura fornitore di " + a.client + " (" + a.amount + "). Posso controllarla e approvarla.";
     default:
       return "Posso occuparmene io.";
   }

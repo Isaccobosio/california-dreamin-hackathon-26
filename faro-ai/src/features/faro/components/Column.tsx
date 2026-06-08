@@ -3,7 +3,7 @@ import { Paper, Box, Typography, Avatar, Button, IconButton, Menu, MenuItem } fr
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEllipsis, faEye } from "@fortawesome/pro-solid-svg-icons";
 import ActionCard from "./ActionCard";
-import { faroContainedSx } from "../theme/faroSx";
+import { ICON } from "../data/icons";
 import type { BoardHandlers } from "./Board";
 import type { ColumnMeta, FaroAction } from "../types";
 import type { Dnd } from "../hooks/useFaroBoard";
@@ -76,7 +76,12 @@ export default function Column({ meta, items, dnd, handlers, hideDone, toggleHid
 
       <Box className="col-body" sx={{ flex: 1, overflowY: "auto", p: 1.5, display: "flex", flexDirection: "column", gap: 1.25 }}>
         {meta.key === "faro" && items.some((a) => a.phase === "todo") && (
-          <Button variant="contained" onClick={handlers.confirmAll} sx={{ ...faroContainedSx, position: "sticky", top: 0, zIndex: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<FontAwesomeIcon icon={ICON.faro} />}
+            onClick={handlers.confirmAll}
+            sx={{ position: "sticky", top: 0, zIndex: 2, bgcolor: "background.paper" }}
+          >
             Conferma tutte le azioni
           </Button>
         )}

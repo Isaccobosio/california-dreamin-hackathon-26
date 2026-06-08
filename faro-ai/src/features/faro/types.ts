@@ -11,7 +11,22 @@ export type ActionKind =
   | "ricorrente"
   | "incasso"
   | "scartata"
-  | "f24";
+  | "f24"
+  | "passiva";
+
+/** Tipo di fonte da cui nasce un task (popover "da dove arriva", spec §5). */
+export type SourceKind = "fic" | "email" | "whatsapp" | "banca" | "calendario" | "regola" | "normo";
+
+/** Una fonte cliccabile collegata a una card. */
+export interface Source {
+  kind: SourceKind;
+  /** Etichetta breve della fonte (es. "Fatture in Cloud"). */
+  label: string;
+  /** Dettaglio concreto (es. "Fattura #2026/138, scaduta il 2/5"). */
+  detail: string;
+  /** Link opzionale "vai alla fonte". */
+  href?: string;
+}
 
 /** Livello di urgenza: r = alto (rosso), a = medio (ambra), g = basso (verde). */
 export type UrgencyLevel = "r" | "a" | "g";
@@ -62,6 +77,8 @@ export interface SeedAction {
   bare?: boolean;
   /** Sigillo normo.AI. */
   normo?: "verified";
+  /** Fonti cliccabili da cui nasce il task. */
+  sources?: Source[];
   thread?: ThreadNote[];
 }
 

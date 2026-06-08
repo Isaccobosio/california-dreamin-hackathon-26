@@ -20,9 +20,16 @@ import {
   faEnvelope,
   faLandmark,
   faGear,
+  faFileImport,
+  faMagnifyingGlass,
+  faCircleQuestion,
+  faBars,
+  faChevronDown,
+  faComment,
+  faTableColumns,
 } from "@fortawesome/pro-solid-svg-icons";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
-import type { ActionKind } from "../types";
+import type { ActionKind, SourceKind } from "../types";
 
 /** Icona per ciascun tipo di azione. */
 export const KIND_ICON: Record<ActionKind, IconDefinition> = {
@@ -33,6 +40,18 @@ export const KIND_ICON: Record<ActionKind, IconDefinition> = {
   incasso: faMoneyBill1,
   scartata: faPen,
   f24: faEuroSign,
+  passiva: faFileImport,
+};
+
+/** Icona per ciascun tipo di fonte (popover "da dove arriva"). */
+export const SOURCE_ICON: Record<SourceKind, IconDefinition> = {
+  fic: faFileLines,
+  email: faEnvelope,
+  whatsapp: faComment,
+  banca: faLandmark,
+  calendario: faCalendarDays,
+  regola: faGear,
+  normo: faStamp,
 };
 
 /** Icone trasversali (UI, stato, fonti). */
@@ -52,4 +71,9 @@ export const ICON = {
   bank: faLandmark,
   euro: faEuroSign,
   gear: faGear,
+  search: faMagnifyingGlass,
+  help: faCircleQuestion,
+  menu: faBars,
+  chevron: faChevronDown,
+  panel: faTableColumns,
 } satisfies Record<string, IconDefinition>;

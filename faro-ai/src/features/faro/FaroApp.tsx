@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Box, Button, Snackbar, Alert } from "@vapor/react-material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import TopBar from "./components/TopBar";
+import AppShell from "./components/AppShell";
 import Board, { type BoardHandlers } from "./components/Board";
 import FaroChat from "./components/FaroChat";
 import ConfirmAllDialog from "./components/dialogs/ConfirmAllDialog";
@@ -59,9 +59,7 @@ export default function FaroApp() {
   const find = (ref: CardRef | null) => (ref ? board.getById(ref.id) : null);
 
   return (
-    <Box sx={{ height: "100vh", display: "flex", flexDirection: "column", bgcolor: "background.default" }}>
-      <TopBar view={view} setView={setView} />
-
+    <AppShell view={view} setView={setView}>
       {view === "value" ? (
         <ValueCenter onHome={() => setView("board")} onUpgrade={() => setView("upgrade")} />
       ) : view === "upgrade" ? (
@@ -143,6 +141,6 @@ export default function FaroApp() {
           </Alert>
         ) : undefined}
       </Snackbar>
-    </Box>
+    </AppShell>
   );
 }
