@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "faro-ai", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "faro-ai", "run", "dev"], "port": 3000 }
+  ]
+}
