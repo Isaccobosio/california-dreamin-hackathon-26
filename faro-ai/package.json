@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.5",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
     "@fortawesome/pro-regular-svg-icons": "^7.2.0",
     "@fortawesome/pro-solid-svg-icons": "^7.2.0",
@@ -17,6 +19,9 @@
     "@ice/core": "2.0.0-beta.7",
     "@ice/react": "2.0.0-workspace.0",
     "@module-federation/vite": "^1.16.4",
+    "@mui/material": "^5.15.17",
+    "@mui/system": "^5.15.15",
+    "@vapor/react-material": "^0.13.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

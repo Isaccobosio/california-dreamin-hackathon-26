@@ -13,7 +13,7 @@ export default defineConfig({
   plugins: [
     react(),
     federation({
-      name: "todo-list",
+      name: "faro-ai",
       filename: "remoteEntry.js",
       exposes: {
         "./remote-config": "./src/remote-config",

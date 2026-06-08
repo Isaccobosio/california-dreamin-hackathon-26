@@ -1,0 +1,56 @@
+/* Stili di layout non coperti dai componenti Vapor.
+   I COLORI vengono dal tema Vapor light (theme.palette) tramite sx;
+   qui solo token brand Faro, geometrie di board, scrollbar e DnD. */
+
+:root {
+  --faro: #7745ec;
+  --faro-2: #9a78ff;
+  --faro-soft: #eee9fc;
+  --faro-strong: #5a2dc9;
+}
+
+.col-body::-webkit-scrollbar,
+.faro-body::-webkit-scrollbar {
+  width: 8px;
+}
+.col-body::-webkit-scrollbar-thumb,
+.faro-body::-webkit-scrollbar-thumb {
+  background: #d4dde3;
+  border-radius: 4px;
+}
+
+.card-dragging {
+  opacity: 0.45;
+}
+.drop-active {
+  outline: 2px dashed var(--faro);
+  outline-offset: -4px;
+}
+
+.inbox-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.inbox-scroll::-webkit-scrollbar {
+  height: 7px;
+}
+.inbox-scroll::-webkit-scrollbar-thumb {
+  background: #d4dde3;
+  border-radius: 4px;
+}
+
+/* handle resize chat */
+.faro-resize {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: col-resize;
+  z-index: 5;
+}
+.faro-resize:hover {
+  background: rgba(119, 69, 236, 0.18);
+}
