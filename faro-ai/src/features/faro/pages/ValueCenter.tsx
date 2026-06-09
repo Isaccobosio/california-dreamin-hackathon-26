@@ -1,147 +1,165 @@
-import { Box, Button, Typography, Breadcrumbs, Link, Paper } from "@vapor/react-material";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
-import { ICON } from "../data/icons";
-import { faroContainedSx } from "../theme/faroSx";
+import Icon, { type IconName } from "../components/Icon";
 
-interface ValueCenterProps {
+interface Props {
   onHome: () => void;
   onUpgrade: () => void;
 }
 
-interface HeroProps {
-  color: string;
-  icon: IconDefinition;
-  badge: string;
-  value: string;
-  label: string;
-  bar?: number;
-}
-
-/** Hero "outline": contorno colorato, nessun riempimento. */
-function Hero({ color, icon, badge, value, label, bar }: HeroProps) {
+/** Card-eroe in alto (KPI con bordo colorato). */
+function Hero({ cls, icon, badge, badgeKind, value, label, bar }: { cls: string; icon: IconName; badge: string; badgeKind: "plan" | "delta"; value: string; label: string; bar?: number }) {
   return (
-    <Paper variant="outlined" sx={{ p: 2.25, borderRadius: 2.25, border: "1.5px solid", borderColor: color, display: "flex", flexDirection: "column", gap: 0.5, minHeight: 150 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.75 }}>
-        <Box sx={{ width: 38, height: 38, borderRadius: 1.5, display: "grid", placeItems: "center", bgcolor: color, color: "#fff" }}>
-          <FontAwesomeIcon icon={icon} />
-        </Box>
-        <Box sx={{ fontSize: 12, fontWeight: 800, color, bgcolor: `${color}1f`, px: 1.1, py: 0.4, borderRadius: 5 }}>{badge}</Box>
-      </Box>
-      <Typography sx={{ fontSize: 34, fontWeight: 800, letterSpacing: "-1px", mt: "auto", color: "text.primary" }}>{value}</Typography>
-      <Typography sx={{ fontSize: 13.5, fontWeight: 700, color }}>{label}</Typography>
+    <div className={`vc-hero ${cls}`}>
+      <div className="vc-hero-top">
+        <div className="vc-hero-ic">
+          <Icon name={icon} size={20} />
+        </div>
+        {badgeKind === "plan" ? (
+          <span className="vc-plan">{badge}</span>
+        ) : (
+          <span className="vc-delta">
+            <Icon name="Trend" size={13} />
+            {badge}
+          </span>
+        )}
+      </div>
+      <div className="vc-hero-val">{value}</div>
+      <div className="vc-hero-lab">{label}</div>
       {bar != null && (
-        <Box sx={{ height: 6, borderRadius: 5, bgcolor: `${color}2e`, mt: 1, overflow: "hidden" }}>
-          <Box sx={{ height: "100%", width: `${bar}%`, bgcolor: color, borderRadius: 5 }} />
-        </Box>
+        <div className="vc-hero-bar">
+          <i style={{ width: `${bar}%` }} />
+        </div>
       )}
-    </Paper>
+    </div>
   );
 }
 
-const BREAKDOWN: Array<[string, number, number, string]> = [
-  ["Solleciti inviati", 420, 33, "var(--faro)"],
-  ["Fatture allo SDI", 380, 30, "#15293e"],
-  ["Riconciliazioni bancarie", 280, 22, "#008FD6"],
-  ["Conferme ricorrenti", 120, 9, "#09822A"],
-  ["Altre azioni", 80, 6, "#98AAB3"],
-];
-
-const SUMMARY: Array<[IconDefinition, string, string]> = [
-  [ICON.clock, "Ore risparmiate", "12h"],
-  [ICON.faro, "Avviate da Faro", "68%"],
-  [ICON.euro, "ROI stimato", "€ 2.450"],
-];
-
-export default function ValueCenter({ onHome, onUpgrade }: ValueCenterProps) {
+/** Riga di breakdown con barra proporzionale. */
+function Bar({ label, n, pct, color }: { label: string; n: string; pct: number; color: string }) {
   return (
-    <Box sx={{ flex: 1, overflowY: "auto", bgcolor: "background.default" }}>
-      <Box sx={{ px: 3, py: 2 }}>
-        <Breadcrumbs>
-          <Link component="button" onClick={onHome} underline="hover">
-            Home
-          </Link>
-          <Typography color="text.primary">My Value Center</Typography>
-        </Breadcrumbs>
-      </Box>
-      <Box sx={{ maxWidth: 1180, mx: "auto", px: 3, pb: 5 }}>
-        <Typography sx={{ fontSize: 30, fontWeight: 800, letterSpacing: "-.6px" }}>My Value Center</Typography>
-        <Typography sx={{ fontSize: 14, color: "text.secondary", mt: 0.75, mb: 3 }}>Il valore che Faro ha generato per il tuo studio questo mese</Typography>
+    <div className="vc-brk-row">
+      <div className="vc-brk-head">
+        <span>{label}</span>
+        <b>{n}</b>
+      </div>
+      <div className="vc-brk-track">
+        <i style={{ width: `${pct}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2, mb: 3 }}>
-          <Hero color="#008FD6" icon={ICON.clock} badge="+18%" value="12h" label="Tempo risparmiato" />
-          <Hero color="var(--faro)" icon={ICON.faro} badge="+25%" value="847" label="Task automatizzati" />
-          <Hero color="#E58A0E" icon={ICON.faro} badge="Piano Pro" value="64%" label="Consumi AI" bar={64} />
-          <Hero color="#09822A" icon={ICON.trend} badge="+42%" value="€ 2.450" label="ROI stimato" />
-        </Box>
+/** My Value Center: valore generato da Faro nel mese. */
+export default function ValueCenter({ onHome, onUpgrade }: Props) {
+  const months = [38, 52, 47, 61, 70, 86];
+  const labels = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu"];
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1.5fr 1fr" }, gap: 2, alignItems: "start" }}>
-          <Paper variant="outlined" sx={{ p: 2.25, borderRadius: 2.25 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, mb: 2 }}>
-              <Box sx={{ width: 34, height: 34, borderRadius: 1.25, display: "grid", placeItems: "center", bgcolor: "var(--faro-soft)", color: "var(--faro-strong)" }}>
-                <FontAwesomeIcon icon={ICON.faro} />
-              </Box>
-              <Box sx={{ flex: 1 }}>
-                <Typography sx={{ fontWeight: 800, fontSize: 15 }}>Consumi AI</Typography>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Azioni eseguite da Faro</Typography>
-              </Box>
-            </Box>
-            <Box sx={{ bgcolor: "action.hover", borderRadius: 1.5, p: 1.75, mb: 2 }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", mb: 1 }}>
-                <Typography>
-                  <b style={{ fontSize: 26 }}>1.280</b> <span style={{ color: "#566b76" }}>/ 2.000 azioni</span>
-                </Typography>
-                <Typography sx={{ fontSize: 18, fontWeight: 800, color: "var(--faro-strong)" }}>64%</Typography>
-              </Box>
-              <Box sx={{ height: 11, borderRadius: 5, bgcolor: "#e0e7eb", overflow: "hidden" }}>
-                <Box sx={{ height: "100%", width: "64%", background: "linear-gradient(90deg, var(--faro), var(--faro-2))" }} />
-              </Box>
-              <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 1.25 }}>Si rinnova il 1° luglio · 720 azioni residue</Typography>
-            </Box>
-            {BREAKDOWN.map(([label, n, pct, color]) => (
-              <Box key={label} sx={{ mb: 1.5 }}>
-                <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, mb: 0.75 }}>
-                  <span style={{ whiteSpace: "nowrap" }}>{label}</span>
-                  <b>{n}</b>
-                </Box>
-                <Box sx={{ height: 8, borderRadius: 5, bgcolor: "#e8edf0", overflow: "hidden" }}>
-                  <Box sx={{ height: "100%", width: `${pct}%`, bgcolor: color, borderRadius: 5 }} />
-                </Box>
-              </Box>
-            ))}
-            <Button variant="contained" sx={{ ...faroContainedSx, mt: 1 }} endIcon={<FontAwesomeIcon icon={ICON.ext} />} onClick={onUpgrade}>
+  return (
+    <div className="vc">
+      <div className="vc-crumb">
+        <button onClick={onHome}>Home</button>
+        <Icon name="Arrow" size={14} />
+        <span>My Value Center</span>
+      </div>
+      <div className="vc-body">
+        <div className="vc-titlewrap">
+          <h1>My Value Center</h1>
+          <p>Il valore che Faro ha generato per il tuo studio questo mese</p>
+        </div>
+
+        <div className="vc-heroes">
+          <Hero cls="blue" icon="Clock" badge="+18%" badgeKind="delta" value="12h" label="Tempo risparmiato" />
+          <Hero cls="viola" icon="Sparkle" badge="+25%" badgeKind="delta" value="847" label="Task automatizzati" />
+          <Hero cls="orange" icon="Sparkle" badge="Piano Pro" badgeKind="plan" value="64%" label="Consumi AI" bar={64} />
+          <Hero cls="green" icon="Trend" badge="+42%" badgeKind="delta" value="€ 2.450" label="ROI stimato" />
+        </div>
+
+        <div className="vc-grid">
+          <div className="vc-panel">
+            <div className="vc-panel-head">
+              <div className="vc-panel-ic" style={{ background: "var(--faro-soft)", color: "var(--faro-strong)" }}>
+                <Icon name="Sparkle" size={18} />
+              </div>
+              <div className="grow">
+                <b>Consumi AI</b>
+                <span>Azioni eseguite da Faro</span>
+              </div>
+              <span className="vc-tag">Piano Pro</span>
+            </div>
+            <div className="vc-meter">
+              <div className="vc-meter-top">
+                <div>
+                  <span className="vc-big">1.280</span>
+                  <span className="vc-of"> / 2.000 azioni AI</span>
+                </div>
+                <span className="vc-pct">64%</span>
+              </div>
+              <div className="vc-meter-track">
+                <i style={{ width: "64%" }} />
+              </div>
+              <div className="vc-meter-foot">
+                <Icon name="Repeat" size={13} />
+                Si rinnova il 1° luglio · 720 azioni residue
+              </div>
+            </div>
+            <div className="vc-brk">
+              <Bar label="Solleciti inviati" n="420" pct={33} color="var(--faro)" />
+              <Bar label="Fatture allo SDI" n="380" pct={30} color="var(--ink)" />
+              <Bar label="Riconciliazioni bancarie" n="280" pct={22} color="var(--brand)" />
+              <Bar label="Conferme ricorrenti" n="120" pct={9} color="var(--comm)" />
+              <Bar label="Altre azioni" n="80" pct={6} color="var(--ink-4)" />
+            </div>
+            <button className="vc-cta" onClick={onUpgrade}>
               Effettua upgrade
-            </Button>
-          </Paper>
+              <Icon name="ArrowUR" size={14} />
+            </button>
+          </div>
 
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Paper variant="outlined" sx={{ p: 2.25, borderRadius: 2.25 }}>
-              <Typography sx={{ fontWeight: 800, fontSize: 15, mb: 2 }}>Andamento consumi · 6 mesi</Typography>
-              <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1, height: 120 }}>
-                {[38, 52, 47, 61, 70, 86].map((h, i) => (
-                  <Box key={i} sx={{ flex: 1, height: `${h}%`, borderRadius: "6px 6px 0 0", bgcolor: i === 5 ? "primary.main" : "primary.light" }} />
+          <div className="vc-side">
+            <div className="vc-panel">
+              <div className="vc-panel-head">
+                <div className="vc-panel-ic" style={{ background: "var(--brand-soft)", color: "var(--brand-strong)" }}>
+                  <Icon name="Chart" size={18} />
+                </div>
+                <div className="grow">
+                  <b>Andamento consumi</b>
+                  <span>Ultimi 6 mesi</span>
+                </div>
+              </div>
+              <div className="vc-chart">
+                {months.map((h, i) => (
+                  <div key={i} className={`vc-col${i === 5 ? " on" : ""}`}>
+                    <i style={{ height: `${h}%` }} />
+                  </div>
                 ))}
-              </Box>
-              <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
-                {["Gen", "Feb", "Mar", "Apr", "Mag", "Giu"].map((m, i) => (
-                  <Typography key={m} sx={{ flex: 1, textAlign: "center", fontSize: 11, fontWeight: 700, color: i === 5 ? "primary.main" : "text.disabled" }}>
+              </div>
+              <div className="vc-chart-x">
+                {labels.map((m, i) => (
+                  <span key={i} className={i === 5 ? "on" : ""}>
                     {m}
-                  </Typography>
+                  </span>
                 ))}
-              </Box>
-            </Paper>
-            <Paper variant="outlined" sx={{ borderRadius: 2.25, px: 2, py: 0.5 }}>
-              {SUMMARY.map(([ic, l, v], i) => (
-                <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 1.25, py: 1.5, borderBottom: i < 2 ? "1px solid" : "none", borderColor: "divider" }}>
-                  <FontAwesomeIcon icon={ic} color="#566b76" />
-                  <Typography sx={{ flex: 1, fontSize: 13.5, fontWeight: 600 }}>{l}</Typography>
-                  <Typography sx={{ fontSize: 15, fontWeight: 800 }}>{v}</Typography>
-                </Box>
-              ))}
-            </Paper>
-          </Box>
-        </Box>
-      </Box>
-    </Box>
+              </div>
+            </div>
+            <div className="vc-valuebox">
+              <div className="vc-vrow">
+                <Icon name="Clock" size={15} />
+                <span className="grow">Ore risparmiate</span>
+                <b>12h</b>
+              </div>
+              <div className="vc-vrow">
+                <Icon name="Sparkle" size={15} />
+                <span className="grow">Avviate da Faro</span>
+                <b>68%</b>
+              </div>
+              <div className="vc-vrow">
+                <Icon name="Euro" size={15} />
+                <span className="grow">ROI stimato</span>
+                <b>€ 2.450</b>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

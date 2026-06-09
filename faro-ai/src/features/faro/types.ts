@@ -1,7 +1,9 @@
 /**
  * Tipi del dominio Faro.
  * Tutto mockato lato UI: nessuna azione raggiunge un backend.
+ * Modello dati allineato alla fonte di design (faro-design-v2).
  */
+import type { IconName } from "./components/Icon";
 
 /** Tipo di azione (kind) — guida icona, CTA e comportamento di Faro. */
 export type ActionKind =
@@ -12,7 +14,7 @@ export type ActionKind =
   | "incasso"
   | "scartata"
   | "f24"
-  | "passiva";
+  | "fornitore";
 
 /** Tipo di fonte da cui nasce un task (popover "da dove arriva", spec §5). */
 export type SourceKind = "fic" | "email" | "whatsapp" | "banca" | "calendario" | "regola" | "normo";
@@ -20,16 +22,20 @@ export type SourceKind = "fic" | "email" | "whatsapp" | "banca" | "calendario" |
 /** Una fonte cliccabile collegata a una card. */
 export interface Source {
   kind: SourceKind;
-  /** Etichetta breve della fonte (es. "Fatture in Cloud"). */
-  label: string;
   /** Dettaglio concreto (es. "Fattura #2026/138, scaduta il 2/5"). */
   detail: string;
-  /** Link opzionale "vai alla fonte". */
-  href?: string;
+  /** Etichetta del link "vai alla fonte" (es. "Apri in FIC"). */
+  link?: string;
 }
 
-/** Livello di urgenza: r = alto (rosso), a = medio (ambra), g = basso (verde). */
+/** Livello di urgenza/colore: r = alto (rosso), a = medio (ambra), g = basso (verde). */
 export type UrgencyLevel = "r" | "a" | "g";
+
+/** Varianti badge/tag mappate sulle classi CSS (.badge.r ecc.). */
+export type TagVariant = "r" | "a" | "g" | "d" | "f" | "b";
+
+/** Sigillo normo.AI. */
+export type NormoSeal = "verified" | "escalate";
 
 /** Attori = colonne assegnabili della board. */
 export type Actor = "me" | "comm" | "faro";
@@ -42,14 +48,13 @@ export type ColumnKey = "inbox" | Actor;
  * todo = da fare · work = Faro in lavorazione · ask = in attesa conferma in chat
  * done = completata · taken = presa in carico dal commercialista
  */
-export type Phase = "todo" | "work" | "ask" | "done" | "taken" | null;
-
-/** Varianti tag della chip (mappate sul tema Vapor). */
-export type TagVariant = "error" | "default" | "violet" | "warning" | "success";
+export type Phase = "todo" | "work" | "ask" | "done" | "taken" | "hidden" | null;
 
 export interface Urgency {
   text: string;
   level: UrgencyLevel;
+  /** Rank di ordinamento: minore = più urgente. */
+  rank: number;
 }
 
 export interface ThreadNote {
@@ -63,20 +68,33 @@ export interface ThreadNote {
 export interface SeedAction {
   id: string;
   kind: ActionKind;
+  /** Icona della card (set inline {@link IconName}). */
+  icon: IconName;
+  /** Codice colore icona/dettaglio (r/a/b/d/f/g). */
+  kic: string;
   title: string;
   client: string;
   sub: string;
   amount: string;
-  tag: [string, TagVariant];
+  /** Valore numerico (per le sintesi). */
+  val: number;
+  /** Tag fallback quando manca l'urgenza: [testo, variante]. */
+  tag?: [string, TagVariant];
   urgency: Urgency;
   /** Attore pre-assegnato da Faro; null = incerto → inbox "Da assegnare". */
   suggest: Actor | null;
+  /** Innesca l'auto-promozione dei solleciti (Acme paga sempre in ritardo). */
+  autopromo?: boolean;
   /** Data fattura, usata nell'anteprima del sollecito. */
   fdate?: string;
-  /** Nasconde la chip del tag. */
+  /** Catena di segnali (es. fattura FIC + bonifico banca → incasso). */
+  chain?: string;
+  /** Domanda di routing mostrata quando la card è incerta. */
+  doubt?: string;
+  /** Card "spoglia": solo nota, niente badge/normo/foot. */
   bare?: boolean;
   /** Sigillo normo.AI. */
-  normo?: "verified";
+  normo?: NormoSeal;
   /** Fonti cliccabili da cui nasce il task. */
   sources?: Source[];
   thread?: ThreadNote[];
@@ -89,16 +107,16 @@ export interface FaroAction extends SeedAction {
   doneMsg: string | null;
 }
 
-/** Messaggio della chat con Faro. */
+/** Messaggio della chat con Faro (o di normo.AI). */
 export interface ChatMessage {
-  role: "faro" | "me";
+  role: "faro" | "me" | "normo";
   text: string;
   /** Risposte rapide proposte da Faro. */
   quick?: string[];
 }
 
-/** Contenuto di una bolla Faro (senza il ruolo, sempre "faro"). */
-export type FaroBubble = Omit<ChatMessage, "role">;
+/** Contenuto di una bolla Faro (senza il ruolo). */
+export type FaroBubble = Omit<ChatMessage, "role"> & { role?: ChatMessage["role"] };
 
 /** Metadati di una colonna-attore. */
 export interface ColumnMeta {
@@ -107,13 +125,27 @@ export interface ColumnMeta {
   role: string;
   initial: string;
   color: string;
+  soft: string;
 }
 
 /** Notifica toast. */
 export interface Toast {
+  id: string;
+  icon: IconName;
+  color?: string;
   title: string;
   msg?: string;
 }
 
 /** Vista corrente dell'app. */
 export type View = "board" | "value" | "upgrade" | "permessi";
+
+/** Stato di un permesso per categoria di dati. */
+export interface PermFlag {
+  v: boolean;
+  e: boolean;
+}
+/** Permessi di un attore: per ciascuna categoria. */
+export type ActorPerms = Record<string, PermFlag>;
+/** Permessi di tutti gli attori configurabili. */
+export type PermsState = Record<"faro" | "comm", ActorPerms>;

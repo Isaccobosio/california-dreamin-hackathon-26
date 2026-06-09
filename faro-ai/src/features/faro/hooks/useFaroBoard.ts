@@ -1,18 +1,30 @@
-import { useCallback, useMemo, useReducer } from "react";
-import type { FaroAction, ThreadNote } from "../types";
-import { SEED } from "../data/seed";
-import { explainFaro, faroHandle } from "../data/conversation";
+import { useCallback, useMemo, useReducer, useRef, useState } from "react";
+import type { Actor, FaroAction, ThreadNote } from "../types";
+import { SEED, NEEDS_PREVIEW } from "../data/seed";
+import { askNormoReply, explainFaro, faroHandle, lucaReply } from "../data/conversation";
+import type { ToastInput } from "./useToast";
 
 const WORK_MSG = "Faro ci sta lavorando…";
+const AUTO_CLIENT = "Acme S.r.l.";
 
-/** Effetti esterni iniettati: toast, dialog email e pannello chat. */
+/** Configurazione restituita dal modale "Attiva solleciti automatici". */
+export interface AutoSollecitiConfig {
+  client: string;
+  steps: { id: string; on: boolean; when: string; tone: string }[];
+  scope: "one" | "late";
+  stopOnPay: boolean;
+  sendTime: string;
+}
+
+/** Effetti esterni iniettati: toast, anteprima, modale regola e pannello chat. */
 export interface FaroBoardDeps {
-  notify: (title: string, msg?: string) => void;
-  openEmail: (id: string) => void;
+  notify: (t: ToastInput) => void;
+  openPreview: (id: string) => void;
+  openAutoModal: (client: string) => void;
   chat: {
     open: () => void;
     pushUser: (text: string) => void;
-    faroSay: (bubble: { text: string; quick?: string[] }, delay?: number) => void;
+    faroSay: (bubble: { role?: "faro" | "normo"; text: string; quick?: string[] }, delay?: number) => void;
   };
 }
 
@@ -82,36 +94,57 @@ function reducer(state: State, action: ReducerAction): State {
 }
 
 /**
- * Cuore della board: stato delle card, drag&drop e handler di assegnazione/
- * esecuzione. Tutte le azioni sono simulate lato UI (transizioni di stato +
- * effetti iniettati su toast/chat).
+ * Cuore della board: stato delle card, drag&drop, esecuzione/assegnazione,
+ * auto-promozione dei solleciti e routing della chat. Tutto simulato lato UI.
  */
 export function useFaroBoard(deps: FaroBoardDeps) {
   const [state, dispatch] = useReducer(reducer, undefined, init);
   const { actions, drag, over, pendingFaro } = state;
 
-  const getById = useCallback((id: string) => actions.find((a) => a.id === id) ?? null, [actions]);
+  const [autoTypes, setAutoTypes] = useState<string[]>([]);
+  const [autoPromo, setAutoPromo] = useState(false);
+  const autoTypesRef = useRef<string[]>([]);
+  const promoRef = useRef(false);
+  autoTypesRef.current = autoTypes;
 
+  const getById = useCallback((id: string) => actions.find((a) => a.id === id) ?? null, [actions]);
   const patch = useCallback((id: string, p: Partial<FaroAction>) => dispatch({ type: "PATCH", id, patch: p }), []);
 
-  /** Esecuzione vera (dopo eventuale anteprima): work → done. */
+  /** Esecuzione vera (dopo eventuale anteprima): work → done, poi auto-promozione. */
   const execFaro = useCallback(
-    (id: string) => {
+    (id: string, edited?: boolean) => {
       const a = getById(id);
       if (!a) return;
+      const h = faroHandle(a);
       dispatch({ type: "PATCH", id, patch: { assignee: "faro", phase: "work", doneMsg: WORK_MSG } });
-      deps.notify("Faro ha preso in carico l'attività", `${a.title} · ${a.client}`);
-      window.setTimeout(() => dispatch({ type: "COMPLETE", id }), 1600);
+      deps.chat.pushUser(`Affido a Faro: ${a.title.toLowerCase()} (${a.client})`);
+      deps.chat.faroSay({ text: edited ? h.text + " (con il testo che hai modificato)" : h.text }, 800);
+      deps.notify({ icon: "Sparkle", color: "var(--faro)", title: "Faro ha preso in carico l'attività", msg: `${a.title} · ${a.client}` });
+      window.setTimeout(() => {
+        dispatch({ type: "COMPLETE", id });
+        deps.notify({ icon: "Check", title: h.done });
+        if (a.autopromo && a.kind === "sollecito" && !autoTypesRef.current.includes("sollecito")) {
+          setAutoPromo(true);
+          if (!promoRef.current) {
+            promoRef.current = true;
+            deps.notify({ icon: "Sparkle", color: "var(--faro)", title: "Faro propone un'automazione", msg: "Vedi il riquadro in cima alla colonna Faro" });
+            deps.chat.faroSay(
+              { text: `Ho notato una cosa: ${a.client} paga sempre in ritardo e tu confermi sempre il sollecito. Vuoi che da ora invii il sollecito da solo, senza chiedertelo?`, quick: ["Attiva solleciti automatici", "No, chiedimi sempre"] },
+              1400,
+            );
+          }
+        }
+      }, 1700);
     },
     [getById, deps],
   );
 
-  /** Click "Lascia fare a Faro": sollecito → anteprima email, altri → esegue. */
+  /** Click "Delega a Faro": tipi con anteprima → modale, altri → esegue. */
   const runFaro = useCallback(
     (id: string) => {
       const a = getById(id);
       if (!a) return;
-      if (a.kind === "sollecito") deps.openEmail(id);
+      if (NEEDS_PREVIEW.includes(a.kind) && !autoTypesRef.current.includes(a.kind)) deps.openPreview(id);
       else execFaro(id);
     },
     [getById, deps, execFaro],
@@ -132,16 +165,28 @@ export function useFaroBoard(deps: FaroBoardDeps) {
   );
 
   const delegateComm = useCallback(
-    (id: string) => {
+    (id: string, viaDrag?: boolean) => {
       const a = getById(id);
       if (!a) return;
       dispatch({ type: "PATCH", id, patch: { assignee: "comm", phase: "taken", doneMsg: "Presa in carico da Luca" } });
-      deps.notify("Passata al commercialista", `${a.title} → Luca Ferri`);
+      deps.notify({ icon: "Building", color: "var(--comm)", title: "Passata al commercialista", msg: `${a.title} → Luca Ferri, con tutti gli allegati.` });
+      if (viaDrag && a.suggest !== "comm") deps.chat.faroSay({ text: "Ok, la giro a Luca 🙂" }, 600);
     },
     [getById, deps],
   );
 
+  const markCommDone = useCallback(
+    (id: string) => {
+      dispatch({ type: "PATCH", id, patch: { phase: "done", doneMsg: "Eseguita da Luca ✓" } });
+      deps.notify({ icon: "Check", color: "var(--comm)", title: "Pratica eseguita da Luca" });
+    },
+    [deps],
+  );
+
   const unassign = useCallback((id: string) => dispatch({ type: "PATCH", id, patch: { assignee: null, phase: null, doneMsg: null } }), []);
+  const setTodo = useCallback((id: string, col: Actor) => dispatch({ type: "PATCH", id, patch: { assignee: col, phase: "todo", doneMsg: null } }), []);
+  const completeSelf = useCallback((id: string) => dispatch({ type: "PATCH", id, patch: { phase: "done", doneMsg: "Completata da te ✓" } }), []);
+  const hideCard = useCallback((id: string) => dispatch({ type: "PATCH", id, patch: { phase: "hidden" } }), []);
 
   const pendingCount = useMemo(() => actions.filter((a) => a.assignee === "faro" && a.phase === "todo").length, [actions]);
 
@@ -149,9 +194,15 @@ export function useFaroBoard(deps: FaroBoardDeps) {
   const confirmAllFaro = useCallback(() => {
     const ids = actions.filter((a) => a.assignee === "faro" && a.phase === "todo").map((a) => a.id);
     if (!ids.length) return;
-    deps.notify(`Faro sta eseguendo ${ids.length} azioni`);
+    deps.notify({ icon: "Sparkle", color: "var(--faro)", title: `Faro sta eseguendo ${ids.length} azioni` });
     dispatch({ type: "WORK_MANY", ids });
-    window.setTimeout(() => dispatch({ type: "COMPLETE_MANY", ids }), 1800);
+    deps.chat.pushUser(`Automatizza tutte le azioni assegnate a Faro (${ids.length})`);
+    deps.chat.faroSay({ text: "Perfetto, le gestisco tutte io. Procedo in sequenza…" }, 700);
+    window.setTimeout(() => {
+      dispatch({ type: "COMPLETE_MANY", ids });
+      deps.notify({ icon: "Check", title: `${ids.length} azioni completate da Faro` });
+      deps.chat.faroSay({ text: `Fatto ✓ Completate le ${ids.length} azioni — le trovi risolte nella mia colonna.`, quick: ["Mostrami il riepilogo", "Perfetto"] }, 1900);
+    }, 2100);
   }, [actions, deps]);
 
   /** Segna come saldata (dialog SettleDialog). */
@@ -159,7 +210,7 @@ export function useFaroBoard(deps: FaroBoardDeps) {
     (id: string, date: string, conto: string) => {
       const a = getById(id);
       dispatch({ type: "PATCH", id, patch: { phase: "done", doneMsg: `Saldata il ${date} · ${conto}` } });
-      deps.notify("Segnata come saldata", a ? `${a.amount} · ${conto}` : conto);
+      deps.notify({ icon: "Check", title: "Segnata come saldata", msg: a ? `${a.amount} · ${conto}` : conto });
     },
     [getById, deps],
   );
@@ -167,11 +218,47 @@ export function useFaroBoard(deps: FaroBoardDeps) {
   /** Invia una nota al commercialista; Luca risponde dopo poco (mock). */
   const addNote = useCallback(
     (id: string, text: string) => {
-      dispatch({ type: "ADD_NOTE", id, note: { author: "me", name: "Mario Rossi", text, time: "ora" } });
-      deps.notify("Nota inviata a Luca");
-      window.setTimeout(
-        () => dispatch({ type: "ADD_NOTE", id, note: { author: "luca", name: "Luca Ferri", text: "Ricevuto, ci penso io e ti aggiorno a breve.", time: "ora" } }),
-        1600,
+      const t = text.trim();
+      if (!t) return;
+      dispatch({ type: "ADD_NOTE", id, note: { author: "me", name: "Mario Rossi", text: t, time: "ora" } });
+      deps.notify({ icon: "Send", color: "var(--comm)", title: "Nota inviata a Luca", msg: "La riceve nello studio." });
+      const a = getById(id);
+      window.setTimeout(() => dispatch({ type: "ADD_NOTE", id, note: { author: "luca", name: "Luca Ferri", text: lucaReply(a ?? { kind: "f24" }), time: "ora" } }), 1600);
+    },
+    [getById, deps],
+  );
+
+  /** "Chiedi a normo.AI": consulto normativo in chat. */
+  const askNormo = useCallback(
+    (id: string) => {
+      const a = getById(id);
+      if (!a) return;
+      deps.chat.open();
+      deps.chat.pushUser(`Chiedi a normo.AI: ${a.title.toLowerCase()}`);
+      deps.chat.faroSay(askNormoReply(a), 900);
+    },
+    [getById, deps],
+  );
+
+  /** Attivazione rapida (dal banner di auto-promozione). */
+  const enableAutoSolleciti = useCallback(() => {
+    setAutoTypes((a) => (a.includes("sollecito") ? a : [...a, "sollecito"]));
+    setAutoPromo(false);
+    deps.notify({ icon: "Sparkle", color: "var(--faro)", title: "Automatico attivo", msg: "D'ora in poi invio i solleciti da solo. Puoi disattivarlo quando vuoi." });
+  }, [deps]);
+
+  /** Chiude il banner di auto-promozione senza attivare nulla. */
+  const dismissAutoPromo = useCallback(() => setAutoPromo(false), []);
+
+  /** Attivazione completa (dal modale regola). */
+  const activateAutoSolleciti = useCallback(
+    (cfg: AutoSollecitiConfig) => {
+      setAutoTypes((a) => (a.includes("sollecito") ? a : [...a, "sollecito"]));
+      setAutoPromo(false);
+      deps.notify({ icon: "Sparkle", color: "var(--faro)", title: "Solleciti automatici attivi", msg: cfg.scope === "one" ? cfg.client : "Tutti i clienti con pagamenti in ritardo" });
+      deps.chat.faroSay(
+        { text: `Fatto ✓ Regola attiva: invio in autonomia ${cfg.steps.filter((s) => s.on).length} promemoria a ${cfg.scope === "one" ? cfg.client : "i clienti in ritardo"}. Le card sollecito ora hanno il badge “Automatico”.` },
+        600,
       );
     },
     [deps],
@@ -180,9 +267,11 @@ export function useFaroBoard(deps: FaroBoardDeps) {
   /** Router messaggi della chat (keyword matching mock). */
   const sendMessage = useCallback(
     (text: string) => {
+      const t = text.trim();
+      if (!t) return;
       deps.chat.open();
-      deps.chat.pushUser(text);
-      const low = text.toLowerCase();
+      deps.chat.pushUser(t);
+      const low = t.toLowerCase();
 
       if ((low.includes("prendila in carico") || low.includes("prendi in carico")) && pendingFaro) {
         const id = pendingFaro;
@@ -194,19 +283,43 @@ export function useFaroBoard(deps: FaroBoardDeps) {
         const id = pendingFaro;
         dispatch({ type: "SET_PENDING", id: null });
         unassign(id);
-        deps.chat.faroSay({ text: "Va bene, la rimetto tra le azioni da assegnare." }, 600);
+        deps.chat.faroSay({ text: "Va bene, la rimetto tra le azioni da assegnare — la gestisci tu." }, 600);
         return;
       }
 
-      if (low.includes("puoi fare") || low.includes("cosa fai")) {
-        deps.chat.faroSay({ text: "Invio solleciti, trasmetto allo SDI, riconcilio i movimenti, confermo le ricorrenti e registro gli incassi. Le pratiche fiscali le lascio a Luca." }, 800);
+      if (low.includes("attiva solleciti automatici")) {
+        deps.openAutoModal(AUTO_CLIENT);
+        deps.chat.faroSay({ text: "Perfetto. Apro la configurazione della regola — controlla i promemoria e l'ordine d'invio, poi attiva." }, 700);
+      } else if (low.includes("automatizza i solleciti")) {
+        enableAutoSolleciti();
+        deps.chat.faroSay({ text: "Fatto ✓ Da ora invio i solleciti in autonomia — sempre con anteprima nello storico. Le card sollecito ora hanno il badge “Automatico”." }, 700);
+      } else if (low.includes("no, chiedimi")) {
+        deps.chat.faroSay({ text: "Va bene, continuo a chiederti conferma prima di ogni sollecito." }, 600);
+      } else if (low.includes("passa a luca")) {
+        deps.chat.faroSay({ text: "Ok, la giro al commercialista con la segnalazione di normo.AI allegata." }, 700);
+      } else if (low.includes("puoi fare") || low.includes("cosa fai") || low.includes("cosa puoi")) {
+        deps.chat.faroSay({ text: "Invio solleciti, trasmetto allo SDI, riconcilio i movimenti, confermo le ricorrenti e registro gli incassi — sempre partendo da una fonte verificabile. Le pratiche fiscali le lascio a Luca.", quick: ["Da dove parto?"] }, 800);
       } else if (low.includes("parto") || low.includes("priorit")) {
-        deps.chat.faroSay({ text: "Partirei dalle 2 fatture scadute (€ 12.444 fermi): premi “Lascia fare a Faro” e invio i solleciti." }, 800);
+        deps.chat.faroSay({ text: "Partirei dalle 2 fatture scadute (la più vecchia di 37 gg): sono in cima alla mia colonna. Premi “Conferma tutte le azioni” o aprile una a una.", quick: ["Mostrami il riepilogo"] }, 800);
+      } else if (low.includes("riepilogo")) {
+        deps.chat.faroSay({ text: "Oggi: 2 solleciti, 4 fatture allo SDI, 3 riconciliazioni. Il commercialista ha F24 e una fattura scartata. In gioco ci sono circa € 29.500." }, 800);
       } else {
         deps.chat.faroSay({ text: "Ricevuto. Trascinami una card o chiedimi “da dove parto?”.", quick: ["Da dove parto?", "Cosa puoi fare tu?"] }, 800);
       }
     },
-    [deps, pendingFaro, execFaro, unassign],
+    [deps, pendingFaro, execFaro, unassign, enableAutoSolleciti],
+  );
+
+  /** Assegnazione da drag&drop. */
+  const assign = useCallback(
+    (id: string, target: string | null) => {
+      if (target === "faro") runFaro(id);
+      else if (target === "faro-chat") proposeFaro(id);
+      else if (target === "comm") delegateComm(id, true);
+      else if (target === "me") setTodo(id, "me");
+      else unassign(id);
+    },
+    [runFaro, proposeFaro, delegateComm, setTodo, unassign],
   );
 
   // Drag & drop (HTML5 nativo)
@@ -232,13 +345,9 @@ export function useFaroBoard(deps: FaroBoardDeps) {
       const id = drag || e.dataTransfer.getData("text/plain");
       dispatch({ type: "DRAG_END" });
       if (!id) return;
-      if (target === "faro-chat") proposeFaro(id);
-      else if (target === "faro") runFaro(id);
-      else if (target === "comm") delegateComm(id);
-      else if (target === "me") patch(id, { assignee: "me", phase: "todo", doneMsg: null });
-      else unassign(id);
+      assign(id, target === "inbox" ? null : target);
     },
-    [drag, proposeFaro, runFaro, delegateComm, patch, unassign],
+    [drag, assign],
   );
 
   const dnd = useMemo(
@@ -251,12 +360,23 @@ export function useFaroBoard(deps: FaroBoardDeps) {
     dnd,
     getById,
     pendingCount,
+    autoTypes,
+    autoPromo,
     runFaro,
     delegateComm,
+    markCommDone,
     execFaro,
     confirmAllFaro,
     markSettled,
     addNote,
+    askNormo,
+    completeSelf,
+    hideCard,
+    setTodo,
+    unassign,
+    enableAutoSolleciti,
+    activateAutoSolleciti,
+    dismissAutoPromo,
     sendMessage,
   };
 }

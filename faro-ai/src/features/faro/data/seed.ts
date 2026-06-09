@@ -1,12 +1,12 @@
-/** Dati mock dello scenario a schermo. */
+/** Dati mock dello scenario a schermo (fonte: faro-design-v2). */
 import type { ActionKind, ColumnKey, ColumnMeta, SeedAction } from "../types";
 
 /** Attori (colonne) della board. */
 export const COLS: Record<ColumnKey, ColumnMeta> = {
-  inbox: { key: "inbox", label: "Da assegnare", role: "Faro è incerto a chi darle", initial: "?", color: "var(--faro)" },
-  me: { key: "me", label: "Mario Rossi", role: "Tu · titolare", initial: "MR", color: "#008FD6" },
-  comm: { key: "comm", label: "Commercialista", role: "Luca Ferri · studio", initial: "LF", color: "#09822A" },
-  faro: { key: "faro", label: "Faro (AI)", role: "Assistente · agisce per te", initial: "✦", color: "var(--faro)" },
+  inbox: { key: "inbox", label: "Da assegnare", role: "Faro è incerto a chi darle", initial: "?", color: "var(--faro)", soft: "var(--faro-soft)" },
+  me: { key: "me", label: "Mario Rossi", role: "Tu · titolare", initial: "MR", color: "var(--brand)", soft: "var(--brand-soft)" },
+  faro: { key: "faro", label: "Faro (AI)", role: "Assistente · agisce per te", initial: "✦", color: "var(--faro)", soft: "var(--faro-soft)" },
+  comm: { key: "comm", label: "Commercialista", role: "Luca Ferri · studio", initial: "LF", color: "var(--comm)", soft: "var(--comm-soft)" },
 };
 
 /** Label del pulsante CTA quando l'azione è in colonna "Mario Rossi". */
@@ -18,81 +18,95 @@ export const CTA: Record<ActionKind, string> = {
   incasso: "Vai a incassare",
   scartata: "Vai a correggere",
   f24: "Vai a pagare l'F24",
-  passiva: "Vai ad approvare",
+  fornitore: "Vai ad approvare",
 };
 
-/** urgency.level: r alto · a medio · g basso */
+/** Tipi che richiedono un'anteprima prima dell'esecuzione di Faro. */
+export const NEEDS_PREVIEW: ActionKind[] = ["sollecito", "ricorrente", "sdi"];
+
+/** urgency.level: r alto · a medio · g basso · rank: minore = più urgente. */
 export const SEED: SeedAction[] = [
   {
-    id: "a1", kind: "sollecito", title: "Sollecita fattura scaduta", client: "Rossi Costruzioni S.r.l.", sub: "Fattura 2026/138", amount: "€ 8.784",
-    tag: ["SCADUTA 37g", "error"], urgency: { text: "scaduta da 37 gg", level: "r" }, suggest: "faro", fdate: "02/04/2026",
+    id: "a1", kind: "sollecito", icon: "Send", kic: "r", title: "Sollecita fattura scaduta", sub: "Acme S.r.l. · 2026/138", amount: "€ 8.784", val: 8784,
+    tag: ["SCADUTA", "r"], client: "Acme S.r.l.", suggest: "faro", autopromo: true, fdate: "02/04/2026",
+    urgency: { text: "scaduta da 37 gg", level: "r", rank: -37 },
     sources: [
-      { kind: "fic", label: "Fatture in Cloud", detail: "Fattura #2026/138, scaduta il 2/5", href: "#" },
-      { kind: "banca", label: "Banca", detail: "Nessun incasso abbinato negli ultimi 60 gg" },
+      { kind: "fic", detail: "Fattura #2026/138, scaduta il 2/5", link: "Apri in FIC" },
+      { kind: "regola", detail: "Schema: Acme paga a ~60 gg, sempre in ritardo", link: "Gestisci regola" },
     ],
   },
   {
-    id: "a2", kind: "sollecito", title: "Sollecita fattura scaduta", client: "Studio Bianchi & Partners", sub: "Fattura 2026/142", amount: "€ 3.660",
-    tag: ["SCADUTA 25g", "error"], urgency: { text: "scaduta da 25 gg", level: "r" }, suggest: "faro", fdate: "14/05/2026",
+    id: "a2", kind: "sollecito", icon: "Send", kic: "r", title: "Sollecita fattura scaduta", sub: "Studio Bianchi & Partners · 2026/142", amount: "€ 3.660", val: 3660,
+    tag: ["SCADUTA", "r"], client: "Studio Bianchi", suggest: "faro", fdate: "14/05/2026",
+    urgency: { text: "scaduta da 25 gg", level: "r", rank: -25 },
     sources: [
-      { kind: "fic", label: "Fatture in Cloud", detail: "Fattura #2026/142, scaduta il 14/5", href: "#" },
-      { kind: "banca", label: "Banca", detail: "Nessun incasso abbinato" },
+      { kind: "fic", detail: "Fattura #2026/142, scaduta il 14/5", link: "Apri in FIC" },
+      { kind: "whatsapp", detail: "Bianchi, 3/6: «arriva a breve»", link: "Apri chat" },
     ],
   },
   {
-    id: "a3", kind: "sdi", title: "Invia 4 fatture allo SDI", client: "4 fatture", sub: "Create ma non trasmesse", amount: "€ 6.240",
-    tag: ["DA INVIARE · SDI", "default"], urgency: { text: "create ieri, da inviare oggi", level: "a" }, suggest: "faro",
-    sources: [{ kind: "fic", label: "Fatture in Cloud", detail: "4 fatture create, non ancora trasmesse", href: "#" }],
+    id: "a7", kind: "scartata", icon: "Pencil", kic: "r", title: "Correggi fattura scartata SDI", sub: "Verdi Forniture · errore cod. 00404", amount: "€ 1.342", val: 1342,
+    tag: ["SCARTATA SDI", "d"], client: "Verdi Forniture", suggest: "comm",
+    urgency: { text: "scartata ieri", level: "r", rank: -1 },
+    sources: [
+      { kind: "fic", detail: "Ricevuta di scarto SDI, cod. 00404 — ieri", link: "Apri ricevuta" },
+      { kind: "normo", detail: "normo.AI: errore formale sulla data, serve il commercialista", link: "Chiedi a normo.AI" },
+    ],
+    normo: "escalate",
   },
   {
-    id: "a5", kind: "riconcilia", title: "Riconcilia 3 movimenti banca", client: "3 movimenti", sub: "Incassi da abbinare", amount: "€ 5.420",
-    tag: ["DA RICONCILIARE", "default"], urgency: { text: "ricevuti ieri", level: "a" }, suggest: "faro",
+    id: "a3", kind: "sdi", icon: "Doc", kic: "d", title: "Invia 4 fatture allo SDI", sub: "Create ma non trasmesse", amount: "€ 6.240", val: 6240,
+    tag: ["DA INVIARE · SDI", "d"], client: "4 fatture", suggest: "faro",
+    urgency: { text: "create ieri, da inviare oggi", level: "a", rank: 0 },
+    sources: [{ kind: "fic", detail: "4 fatture create il 6/6, non ancora trasmesse", link: "Apri in FIC" }],
+  },
+  {
+    id: "a5", kind: "riconcilia", icon: "Bank", kic: "b", title: "Riconcilia 3 movimenti banca", sub: "Incassi da abbinare", amount: "€ 5.420", val: 5420,
+    tag: ["DA RICONCILIARE", "d"], client: "3 movimenti", suggest: "faro",
+    urgency: { text: "bonifici di ieri", level: "a", rank: 1 },
+    chain: "Bonifici (banca) + fatture aperte (FIC) → incassi da riconciliare",
     sources: [
-      { kind: "banca", label: "Banca", detail: "3 bonifici in entrata non abbinati" },
-      { kind: "fic", label: "Fatture in Cloud", detail: "3 fatture aperte compatibili", href: "#" },
+      { kind: "banca", detail: "3 bonifici ricevuti il 5/6 (€ 5.420)", link: "Vedi movimenti" },
+      { kind: "fic", detail: "Corrispondono a fatture aperte", link: "Apri in FIC" },
     ],
   },
   {
-    id: "a7", kind: "scartata", title: "Correggi fattura scartata SDI", client: "Verdi Forniture", sub: "Errore cod. 00404", amount: "€ 1.342",
-    tag: ["SCARTATA SDI", "default"], urgency: { text: "scartata ieri", level: "r" }, suggest: "comm", bare: true,
+    id: "a4", kind: "ricorrente", icon: "Repeat", kic: "f", title: "Conferma fattura ricorrente", sub: "Canone hosting · Galleria Moderna", amount: "€ 400", val: 400,
+    tag: ["DA CONFERMARE", "f"], client: "Galleria Moderna", suggest: null, doubt: "La confermo io o la vedi prima tu?",
+    urgency: { text: "si genera tra 3 gg", level: "a", rank: 3 },
     sources: [
-      { kind: "fic", label: "Ricevuta SDI", detail: "Scarto cod. 00404 — data non valida", href: "#" },
-      { kind: "normo", label: "normo.AI", detail: "Richiede valutazione normativa → commercialista" },
+      { kind: "regola", detail: "Regola: canone mensile Galleria Moderna", link: "Gestisci regola" },
+      { kind: "calendario", detail: "Si attiva l'11/6", link: "Apri scadenzario" },
     ],
   },
   {
-    id: "a8", kind: "f24", title: "Paga F24 · IVA mensile", client: "F24 IVA", sub: "Liquidazione IVA di maggio", amount: "€ 1.487",
-    tag: ["F24", "warning"], urgency: { text: "scade tra 8 gg", level: "a" }, suggest: "comm", normo: "verified",
+    id: "a9", kind: "fornitore", icon: "Cart", kic: "d", title: "Approva fattura fornitore", sub: "Acme Forniture · costi di studio", amount: "€ 980", val: 980,
+    tag: ["DA APPROVARE", "d"], client: "Acme Forniture", suggest: null, doubt: "La registro io o la controlli prima tu?",
+    urgency: { text: "ricevuta 2 gg fa", level: "a", rank: 2 },
     sources: [
-      { kind: "fic", label: "Fatture in Cloud", detail: "Liquidazione IVA di maggio", href: "#" },
-      { kind: "calendario", label: "Calendario fiscale", detail: "Scadenza versamento: 16/6" },
-      { kind: "normo", label: "normo.AI", detail: "Conforme alla norma" },
+      { kind: "fic", detail: "Fattura fornitore ricevuta via SDI il 6/6", link: "Apri in FIC" },
+      { kind: "email", detail: "Allegato PDF da acme@forniture.it", link: "Apri email" },
     ],
+  },
+  {
+    id: "a8", kind: "f24", icon: "Euro", kic: "a", title: "Paga F24 · IVA mensile", sub: "Liquidazione IVA di maggio", amount: "€ 1.487", val: 1487,
+    tag: ["F24", "a"], client: "F24 IVA", suggest: "comm", normo: "verified",
+    urgency: { text: "scade tra 8 gg", level: "a", rank: 8 },
     thread: [{ author: "luca", name: "Luca Ferri", text: "Ho ricevuto l'F24, lo verifico e ti confermo entro oggi.", time: "2 h fa" }],
-  },
-  // incerte → da assegnare
-  {
-    id: "a9", kind: "passiva", title: "Approva fattura fornitore", client: "Tecno Service S.r.l.", sub: "Fattura fornitore", amount: "€ 980",
-    tag: ["DA APPROVARE", "violet"], urgency: { text: "ricevuta 2 gg fa", level: "a" }, suggest: null,
     sources: [
-      { kind: "email", label: "Email / SDI", detail: "PDF allegato ricevuto via SDI", href: "#" },
-      { kind: "fic", label: "Fatture in Cloud", detail: "Fornitore Tecno Service S.r.l." },
+      { kind: "fic", detail: "Liquidazione IVA maggio", link: "Apri in FIC" },
+      { kind: "calendario", detail: "Scadenza 16/6", link: "Apri scadenzario" },
+      { kind: "normo", detail: "normo.AI: importo verificato, conforme", link: "Chiedi a normo.AI" },
     ],
   },
   {
-    id: "a4", kind: "ricorrente", title: "Conferma fattura ricorrente", client: "Galleria Moderna", sub: "Canone hosting mensile", amount: "€ 400",
-    tag: ["DA CONFERMARE", "violet"], urgency: { text: "si genera tra 3 gg", level: "a" }, suggest: null,
+    id: "a6", kind: "incasso", icon: "Money", kic: "g", title: "Registra incasso ricevuto", sub: "Galleria Moderna · bonifico", amount: "€ 2.196", val: 2196,
+    tag: ["INCASSO RICEVUTO", "g"], client: "Galleria Moderna", suggest: "me",
+    urgency: { text: "incassato ieri", level: "g", rank: 2 },
+    chain: "Bonifico (banca) + fattura #2026/149 (FIC) → incasso confermato",
     sources: [
-      { kind: "regola", label: "Regola ricorrente", detail: "Canone hosting mensile" },
-      { kind: "calendario", label: "Calendario", detail: "Si attiva l'11/6" },
-    ],
-  },
-  {
-    id: "a6", kind: "incasso", title: "Registra incasso ricevuto", client: "Galleria Moderna", sub: "Bonifico in entrata", amount: "€ 2.196",
-    tag: ["INCASSO RICEVUTO", "success"], urgency: { text: "incassato ieri", level: "g" }, suggest: "me",
-    sources: [
-      { kind: "banca", label: "Banca", detail: "Bonifico € 2.196 da Galleria Moderna" },
-      { kind: "fic", label: "Fatture in Cloud", detail: "Fattura #2026/130 abbinabile", href: "#" },
+      { kind: "banca", detail: "Bonifico € 2.196 ricevuto il 5/6", link: "Vedi movimento" },
+      { kind: "fic", detail: "Abbinabile a fattura #2026/149", link: "Apri in FIC" },
     ],
   },
 ];

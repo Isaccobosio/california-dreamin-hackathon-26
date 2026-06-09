@@ -1,22 +1,15 @@
 import { useCallback, useRef, useState } from "react";
 import type { ChatMessage, FaroBubble } from "../types";
-
-const INITIAL_MESSAGES: ChatMessage[] = [
-  {
-    role: "faro",
-    text: "Ciao Mario 👋 Sono Faro. Ho già pre-assegnato le attività; due non sapevo a chi darle, le trovi in “Da assegnare”. Trascina pure dove vuoi.",
-    quick: ["Cosa puoi fare tu?", "Da dove parto?"],
-  },
-];
+import { INITIAL_MESSAGES } from "../data/conversation";
 
 const MIN_WIDTH = 300;
-const MAX_WIDTH = 560;
+const MAX_WIDTH = 620;
 const DEFAULT_WIDTH = 360;
 
 /**
  * Stato puro del pannello chat: messaggi, indicatore "sta scrivendo",
- * apertura e ridimensionamento. Non contiene logica di intent: il routing
- * dei messaggi vive in {@link useFaroBoard}, che inietta qui le bolle.
+ * apertura e ridimensionamento. Il routing dei messaggi vive in
+ * {@link useFaroBoard}, che inietta qui le bolle.
  */
 export function useFaroChat() {
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
@@ -29,12 +22,12 @@ export function useFaroChat() {
     setMessages((prev) => [...prev, { role: "me", text }]);
   }, []);
 
-  /** Risposta di Faro dopo un breve "sta scrivendo…". */
+  /** Risposta di Faro (o normo) dopo un breve "sta scrivendo…". */
   const faroSay = useCallback((bubble: FaroBubble, delay = 800) => {
     setTyping(true);
     window.setTimeout(() => {
       setTyping(false);
-      setMessages((prev) => [...prev, { role: "faro", ...bubble }]);
+      setMessages((prev) => [...prev, { role: bubble.role ?? "faro", text: bubble.text, quick: bubble.quick }]);
     }, delay);
   }, []);
 
@@ -43,9 +36,7 @@ export function useFaroChat() {
     resizing.current = true;
     e.preventDefault();
     const move = (ev: MouseEvent) => {
-      if (resizing.current) {
-        setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, window.innerWidth - ev.clientX)));
-      }
+      if (resizing.current) setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, window.innerWidth - ev.clientX)));
     };
     const up = () => {
       resizing.current = false;

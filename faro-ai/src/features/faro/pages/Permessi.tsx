@@ -1,136 +1,176 @@
 import { useState } from "react";
-import { Box, Typography, Breadcrumbs, Link, Paper, Switch, Avatar } from "@vapor/react-material";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { ICON } from "../data/icons";
+import Icon from "../components/Icon";
+import { ACTORS, PERM_CATS, type PermActor } from "../data/domain";
+import type { PermsState } from "../types";
+import type { ToastInput } from "../hooks/useToast";
 
-interface PermessiProps {
+interface Props {
+  perms: PermsState;
+  setPerms: React.Dispatch<React.SetStateAction<PermsState>>;
   onHome: () => void;
+  notify: (t: ToastInput) => void;
 }
 
-type PermActor = "faro" | "comm";
-/** v = vede · e = modifica */
-type PermKind = "v" | "e";
-type Perms = Record<PermActor, Record<string, PermKind[]>>;
-
-interface Area {
-  id: string;
-  label: string;
-  desc: string;
+/** Switch quadrato (visualizza=blu, modifica=colore attore). */
+function Sw({ on, kind, onClick }: { on: boolean; kind: "v" | "e"; onClick: () => void }) {
+  return <button className={`pm-sw${on ? ` on ${kind}` : ""}`} role="switch" aria-checked={on} onClick={onClick} type="button"><i /></button>;
 }
 
-interface ActorMeta {
-  label: string;
-  sub: string;
-  color: string;
-  initial: string;
-}
+/** Impostazioni · Permessi: cosa Faro e il commercialista vedono/modificano. */
+export default function Permessi({ perms, setPerms, onHome, notify }: Props) {
+  const [actor, setActor] = useState<PermActor>("faro");
+  const meta = ACTORS[actor];
+  const ap = perms[actor];
 
-const AREAS: Area[] = [
-  { id: "fatture", label: "Fatture e corrispettivi", desc: "Emesse, ricevute, SDI" },
-  { id: "incassi", label: "Incassi e pagamenti", desc: "Scadenze, solleciti" },
-  { id: "banca", label: "Movimenti bancari", desc: "Conti e riconciliazioni" },
-  { id: "fiscale", label: "Adempimenti fiscali", desc: "F24, dichiarazioni" },
-  { id: "anagrafiche", label: "Anagrafiche", desc: "Clienti e fornitori" },
-];
+  const setCat = (cat: string, next: { v: boolean; e: boolean }) => setPerms((p) => ({ ...p, [actor]: { ...p[actor], [cat]: next } }));
+  const toggleV = (cat: string) => {
+    const cur = ap[cat];
+    const v = !cur.v;
+    setCat(cat, { v, e: v ? cur.e : false });
+  };
+  const toggleE = (cat: string) => {
+    const cur = ap[cat];
+    const e = !cur.e;
+    setCat(cat, { v: e ? true : cur.v, e });
+  };
 
-const DEFAULT_PERMS: Perms = {
-  faro: { fatture: ["v", "e"], incassi: ["v", "e"], banca: ["v"], fiscale: ["v"], anagrafiche: ["v", "e"] },
-  comm: { fatture: ["v"], incassi: ["v"], banca: ["v"], fiscale: ["v", "e"], anagrafiche: ["v"] },
-};
+  const preset = (level: "full" | "read" | "none") => {
+    setPerms((p) => ({
+      ...p,
+      [actor]: PERM_CATS.reduce<Record<string, { v: boolean; e: boolean }>>((o, c) => {
+        o[c.id] = level === "full" ? { v: true, e: true } : level === "read" ? { v: true, e: false } : { v: false, e: false };
+        return o;
+      }, {}),
+    }));
+    notify({ icon: "Shield", color: meta.color, title: "Permessi aggiornati", msg: `${meta.label} · ${level === "full" ? "accesso completo" : level === "read" ? "sola lettura" : "nessun accesso"}` });
+  };
 
-const META: Record<PermActor, ActorMeta> = {
-  faro: { label: "Faro (AI)", sub: "Assistente automatico", color: "var(--faro)", initial: "✦" },
-  comm: { label: "Commercialista", sub: "Luca Ferri", color: "#09822A", initial: "LF" },
-};
-
-export default function Permessi({ onHome }: PermessiProps) {
-  const [perms, setPerms] = useState<Perms>(DEFAULT_PERMS);
-
-  const toggle = (actor: PermActor, area: string, kind: PermKind) =>
-    setPerms((p) => {
-      const cur = new Set(p[actor][area]);
-      if (cur.has(kind)) cur.delete(kind);
-      else cur.add(kind);
-      if (kind === "v" && !cur.has("v")) cur.delete("e"); // niente edit senza view
-      if (kind === "e" && cur.has("e")) cur.add("v");
-      return { ...p, [actor]: { ...p[actor], [area]: [...cur] } };
-    });
-
-  const actorHeader = (meta: ActorMeta) => (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-      <Avatar sx={{ width: 32, height: 32, borderRadius: 1.25, fontSize: 12, fontWeight: 800, bgcolor: meta.color }}>{meta.initial}</Avatar>
-      <Box>
-        <Typography sx={{ fontWeight: 800, fontSize: 13.5 }}>{meta.label}</Typography>
-        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{meta.sub}</Typography>
-      </Box>
-    </Box>
-  );
-
-  const cell = (actor: PermActor, area: string) => (
-    <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
-      {(
-        [
-          ["v", "Vede"],
-          ["e", "Modifica"],
-        ] as Array<[PermKind, string]>
-      ).map(([k, lbl]) => (
-        <Box key={k} sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
-          <Switch size="small" checked={perms[actor][area].includes(k)} onChange={() => toggle(actor, area, k)} />
-          <Typography sx={{ fontSize: 10.5, color: "text.secondary", fontWeight: 700 }}>{lbl}</Typography>
-        </Box>
-      ))}
-    </Box>
-  );
+  const vCount = PERM_CATS.filter((c) => ap[c.id].v).length;
+  const eCount = PERM_CATS.filter((c) => ap[c.id].e).length;
 
   return (
-    <Box sx={{ flex: 1, overflowY: "auto", bgcolor: "background.default" }}>
-      <Box sx={{ px: 3, py: 2 }}>
-        <Breadcrumbs>
-          <Link component="button" onClick={onHome} underline="hover">
-            Home
-          </Link>
-          <Typography color="text.primary">Permessi di accesso</Typography>
-        </Breadcrumbs>
-      </Box>
-      <Box sx={{ maxWidth: 920, mx: "auto", px: 3, pb: 5 }}>
-        <Typography sx={{ fontSize: 30, fontWeight: 800, letterSpacing: "-.6px" }}>Permessi di accesso</Typography>
-        <Typography sx={{ fontSize: 14, color: "text.secondary", mt: 0.75, mb: 3 }}>
-          Gestisci cosa Faro e il commercialista possono vedere e modificare nel tuo account. Sono due attori distinti.
-        </Typography>
+    <div className="vc pm">
+      <div className="vc-crumb">
+        <button onClick={onHome}>Home</button>
+        <Icon name="Arrow" size={14} />
+        <span>Impostazioni · Permessi</span>
+      </div>
+      <div className="vc-body">
+        <div className="vc-titlewrap">
+          <h1>Permessi di accesso</h1>
+          <p>Decidi cosa Faro e il commercialista possono vedere e modificare nei dati del tuo account. Sono due attori distinti, con permessi indipendenti.</p>
+        </div>
 
-        <Paper variant="outlined" sx={{ borderRadius: 2.25, overflow: "hidden" }}>
-          <Box sx={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", alignItems: "center", p: 2, borderBottom: "1px solid", borderColor: "divider", bgcolor: "action.hover" }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 800, color: "text.secondary" }}>AREA DATI</Typography>
-            {actorHeader(META.faro)}
-            {actorHeader(META.comm)}
-          </Box>
-          {AREAS.map((ar, i) => (
-            <Box key={ar.id} sx={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", alignItems: "center", p: 2, borderBottom: i < AREAS.length - 1 ? "1px solid" : "none", borderColor: "divider" }}>
-              <Box>
-                <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>{ar.label}</Typography>
-                <Typography sx={{ fontSize: 11.5, color: "text.secondary" }}>{ar.desc}</Typography>
-              </Box>
-              {cell("faro", ar.id)}
-              {cell("comm", ar.id)}
-            </Box>
-          ))}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.1, p: 2, bgcolor: "action.hover", fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>
-            <FontAwesomeIcon icon={ICON.shield} />
+        <div className="pm-tabs">
+          {(["faro", "comm"] as PermActor[]).map((id) => {
+            const m = ACTORS[id];
+            const ip = perms[id];
+            const nv = PERM_CATS.filter((c) => ip[c.id].v).length;
+            const ne = PERM_CATS.filter((c) => ip[c.id].e).length;
+            return (
+              <button key={id} className={`pm-tab${actor === id ? " on" : ""}`} style={{ ["--ac" as string]: m.color, ["--ac-soft" as string]: m.soft }} onClick={() => setActor(id)}>
+                <div className="pm-tab-av" style={{ background: m.color }}>
+                  {m.init}
+                </div>
+                <div className="pm-tab-tx">
+                  <b>{m.label}</b>
+                  <span>{m.role}</span>
+                </div>
+                <div className="pm-tab-meta">
+                  {nv} viste · {ne} modifiche
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="pm-panel" style={{ ["--ac" as string]: meta.color, ["--ac-soft" as string]: meta.soft, ["--ac-strong" as string]: meta.strong }}>
+          <div className="pm-note">
+            <div className="pm-note-ic">
+              <Icon name={meta.icon} size={16} />
+            </div>
+            <span className="grow">{meta.note}</span>
+            <div className="pm-presets">
+              <button onClick={() => preset("full")}>Tutto</button>
+              <button onClick={() => preset("read")}>Sola lettura</button>
+              <button onClick={() => preset("none")}>Niente</button>
+            </div>
+          </div>
+
+          <div className="pm-summary">
+            <div className="pm-chip">
+              <Icon name="Eye" size={14} />
+              <b>{vCount}</b> categorie visibili
+            </div>
+            <div className="pm-chip">
+              <Icon name="Pencil" size={14} />
+              <b>{eCount}</b> modificabili
+            </div>
+          </div>
+
+          <div className="pm-table">
+            <div className="pm-thead">
+              <span className="grow">Categoria di dati</span>
+              <span className="pm-col">Visualizza</span>
+              <span className="pm-col">Modifica</span>
+            </div>
+            {PERM_CATS.map((c) => {
+              const st = ap[c.id];
+              return (
+                <div className={`pm-row${st.v ? "" : " off"}`} key={c.id}>
+                  <div className="pm-cat">
+                    <div className="pm-cat-ic">
+                      <Icon name={c.icon} size={17} />
+                    </div>
+                    <div>
+                      <b>{c.label}</b>
+                      <span>{c.desc}</span>
+                    </div>
+                  </div>
+                  <div className="pm-col">
+                    <Sw on={st.v} kind="v" onClick={() => toggleV(c.id)} />
+                  </div>
+                  <div className="pm-col">
+                    <Sw on={st.e} kind="e" onClick={() => toggleE(c.id)} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="pm-foot">
+            <Icon name="Lock" size={14} />
             Le modifiche fuori permesso vengono sempre proposte, mai eseguite in autonomia. Puoi cambiare questi permessi in qualsiasi momento.
-          </Box>
-        </Paper>
+          </div>
+        </div>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.1, mt: 2, px: 0.5, fontSize: 12.5, color: "text.secondary", fontWeight: 600 }}>
-          <FontAwesomeIcon icon={ICON.shield} />
+        <div className="pm-privacy">
+          <Icon name="Shield" size={14} />
           <span>
             Il trattamento dei dati condivisi con Faro e il commercialista è regolato dalla{" "}
-            <Link href="https://www.teamsystem.com/privacy-policy" target="_blank" rel="noopener noreferrer">
+            <a href="https://www.teamsystem.com/privacy-policy" target="_blank" rel="noopener noreferrer">
               Privacy Policy di TeamSystem
-            </Link>
+            </a>
             .
           </span>
-        </Box>
-      </Box>
-    </Box>
+        </div>
+
+        <div className="pm-save">
+          <button className="btn ghost" onClick={onHome}>
+            Indietro
+          </button>
+          <button
+            className="btn blue"
+            onClick={() => {
+              notify({ icon: "Check", title: "Permessi salvati", msg: "Le impostazioni di accesso sono state aggiornate." });
+              onHome();
+            }}
+          >
+            <Icon name="Check" size={15} />
+            Salva permessi
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
