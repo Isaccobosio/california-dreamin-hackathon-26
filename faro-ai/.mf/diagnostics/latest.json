@@ -1,10 +1,10 @@
 {
   "latestErrorEvent": {
     "code": "TYPE-001",
-    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project /Users/isaccobosio/Documents/lavoro/repo/california-dreamin-hackathon-26/faro-ai/node_modules/.federation/tsconfig.8f24a4787b045ce3b4bd3d010d9c6f55.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
+    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project /Users/isaccobosio/Documents/lavoro/repo/california-dreamin-hackathon-26/faro-ai/node_modules/.federation/tsconfig.dd2ea059614227b323ff8c26df98aeef.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
     "args": {
-      "cmd": "npx tsc --project /Users/isaccobosio/Documents/lavoro/repo/california-dreamin-hackathon-26/faro-ai/node_modules/.federation/tsconfig.8f24a4787b045ce3b4bd3d010d9c6f55.json"
+      "cmd": "npx tsc --project /Users/isaccobosio/Documents/lavoro/repo/california-dreamin-hackathon-26/faro-ai/node_modules/.federation/tsconfig.dd2ea059614227b323ff8c26df98aeef.json"
     },
-    "timestamp": 1780962354307
+    "timestamp": 1780966922248
   }
 }
