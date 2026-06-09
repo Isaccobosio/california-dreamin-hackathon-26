@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Icon from "../components/Icon";
 import { CTA } from "../data/seed";
 import type { ColumnKey, FaroAction } from "../types";
@@ -10,7 +11,7 @@ export interface CardActionHandlers {
   openNote: (id: string) => void;
 }
 
-interface Props {
+interface Args {
   a: FaroAction;
   place: ColumnKey;
   isAuto: boolean;
@@ -20,11 +21,11 @@ interface Props {
 const SETTLE_KINDS = ["sollecito", "incasso", "ricorrente", "sdi"];
 
 /**
- * Contenuto della parte destra del piede card: cambia in base a fase + colonna.
- * Replica la logica `foot()` del prototipo (lavorazione, attesa, risolto,
- * CTA "io", "Delega a Faro", presa in carico dal commercialista).
+ * Nodo del piede card in base a fase + colonna: lavorazione, attesa, risolto,
+ * CTA "io", "Delega a Faro", presa in carico dal commercialista.
+ * Restituisce null quando non c'è nessuna azione (così la card non mostra il piede).
  */
-export default function CardActions({ a, place, isAuto, h }: Props) {
+export function cardActionNode({ a, place, isAuto, h }: Args): ReactNode {
   if (a.phase === "work")
     return (
       <div className="status work">

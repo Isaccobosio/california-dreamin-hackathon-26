@@ -1,6 +1,6 @@
 import SourceButton from "./SourceButton";
 import NormoSeal from "./NormoSeal";
-import CardActions, { type CardActionHandlers } from "./CardActions";
+import { cardActionNode, type CardActionHandlers } from "./CardActions";
 import type { ColumnKey, FaroAction } from "../types";
 
 /** Handler completi richiesti da una card. */
@@ -20,10 +20,11 @@ interface Props {
   handlers: CardHandlers;
 }
 
-/** Card-azione: badge urgenza, titolo+importo, sigillo normo, fonte + azione. */
+/** Card-azione: riga badge+fonte, titolo+importo, sigillo normo, azione. */
 export default function ActionCard({ a, place, inboxCard, dragging, autoTypes, handlers }: Props) {
   const isAuto = autoTypes.includes(a.kind);
   const cls = ["card", inboxCard ? "inbox-card" : "", dragging ? "dragging" : ""].filter(Boolean).join(" ");
+  const foot = a.bare ? null : cardActionNode({ a, place, isAuto, h: handlers });
 
   return (
     <div
@@ -37,16 +38,17 @@ export default function ActionCard({ a, place, inboxCard, dragging, autoTypes, h
       }}
     >
       <div className="card-pad">
-        {a.urgency ? (
-          <span className={`badge ${a.urgency.level}`}>{a.urgency.text}</span>
-        ) : a.tag ? (
-          <span className={`badge ${a.tag[1]}`}>{a.tag[0]}</span>
-        ) : null}
-        {isAuto && (
-          <span className="badge f" style={{ marginLeft: 6 }}>
-            ✦ AUTOMATICO
-          </span>
-        )}
+        <div className="card-top">
+          <div className="badges">
+            {a.urgency ? (
+              <span className={`badge ${a.urgency.level}`}>{a.urgency.text}</span>
+            ) : a.tag ? (
+              <span className={`badge ${a.tag[1]}`}>{a.tag[0]}</span>
+            ) : null}
+            {isAuto && <span className="badge f">✦ AUTOMATICO</span>}
+          </div>
+          <SourceButton sources={a.sources} onOpen={(rect) => handlers.onSource(a, rect)} />
+        </div>
 
         <div className="card-row">
           <b className="card-title">{a.title}</b>
@@ -56,12 +58,9 @@ export default function ActionCard({ a, place, inboxCard, dragging, autoTypes, h
         {a.normo && !a.bare && <NormoSeal normo={a.normo} onAsk={() => handlers.askNormo(a.id)} />}
       </div>
 
-      {!a.bare && (
+      {foot && (
         <div className="card-foot">
-          <SourceButton sources={a.sources} onOpen={(rect) => handlers.onSource(a, rect)} />
-          <div className="foot-act">
-            <CardActions a={a} place={place} isAuto={isAuto} h={handlers} />
-          </div>
+          <div className="foot-act">{foot}</div>
         </div>
       )}
     </div>

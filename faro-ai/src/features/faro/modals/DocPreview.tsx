@@ -11,10 +11,11 @@ interface Props {
   onConfirm: (edited: boolean) => void;
 }
 
-/** Anteprima documento (ricorrente / invio SDI) con modifica testo. */
+/** Anteprima documento (ricorrente / invio SDI): righe schematiche, modificabili. */
 export default function DocPreview({ art, onCancel, onConfirm }: Props) {
+  const original = art.rows.map((r) => `${r.label}: ${r.value}`).join("\n");
   const [edit, setEdit] = useState(false);
-  const [text, setText] = useState(art.text);
+  const [text, setText] = useState(original);
 
   return (
     <ModalShell onClose={onCancel} className="wide">
@@ -35,7 +36,14 @@ export default function DocPreview({ art, onCancel, onConfirm }: Props) {
         {edit ? (
           <textarea className="pv-text" value={text} onChange={(e) => setText(e.target.value)} autoFocus />
         ) : (
-          <pre className="pv-doc">{text}</pre>
+          <div className="pv-doc-rows">
+            {art.rows.map((r, i) => (
+              <div className={`doc-row${r.strong ? " strong" : ""}`} key={i}>
+                <span className="doc-k">{r.label}</span>
+                <span className="doc-v">{r.value}</span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
       <div className="modal-foot">
@@ -46,7 +54,7 @@ export default function DocPreview({ art, onCancel, onConfirm }: Props) {
           <Icon name="Pencil" size={14} />
           {edit ? "Fine modifica" : "Modifica"}
         </button>
-        <button className="btn faro" onClick={() => onConfirm(edit && text !== art.text)}>
+        <button className="btn faro" onClick={() => onConfirm(edit && text !== original)}>
           <Icon name="Check" size={15} />
           Conferma
         </button>

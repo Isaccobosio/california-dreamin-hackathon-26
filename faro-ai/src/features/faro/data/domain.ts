@@ -48,10 +48,18 @@ export const DEFAULT_PERMS = {
   comm: { fatture: { v: true, e: true }, clienti: { v: true, e: false }, banca: { v: true, e: false }, fisco: { v: true, e: true }, incassi: { v: true, e: false }, prodotti: { v: false, e: false }, analisi: { v: true, e: false } },
 };
 
-/** Artefatto mostrato in anteprima prima della conferma (testo modificabile). */
+/** Riga schematica (etichetta + valore) di un documento in anteprima. */
+export interface DocRow {
+  label: string;
+  value: string;
+  /** Riga in evidenza (es. Totale). */
+  strong?: boolean;
+}
+
+/** Artefatto mostrato in anteprima prima della conferma. */
 export type Artifact =
   | { kind: "email"; title: string; subtitle: string; num: string; date: string; subject: string; recipients: { name: string; email: string }[]; body: string }
-  | { kind: "doc"; title: string; subtitle: string; text: string };
+  | { kind: "doc"; title: string; subtitle: string; rows: DocRow[] };
 
 export function artifact(a: FaroAction): Artifact {
   if (a.kind === "sollecito") {
@@ -66,15 +74,33 @@ export function artifact(a: FaroAction): Artifact {
   if (a.kind === "ricorrente")
     return {
       kind: "doc", title: "Anteprima fattura ricorrente", subtitle: `${a.client} · ${a.amount}`,
-      text: `Fattura ricorrente — ${a.client}\nDescrizione: Canone mensile hosting e manutenzione\nImponibile: € 400,00 · Bollo: assolto\nTotale: ${a.amount}\nScadenza: 30 gg data fattura`,
+      rows: [
+        { label: "Cliente", value: a.client },
+        { label: "Descrizione", value: "Canone mensile hosting e manutenzione" },
+        { label: "Imponibile", value: "€ 400,00" },
+        { label: "Bollo", value: "assolto" },
+        { label: "Scadenza", value: "30 gg data fattura" },
+        { label: "Totale", value: a.amount, strong: true },
+      ],
     };
   if (a.kind === "sdi")
     return {
       kind: "doc", title: "Anteprima invio allo SDI", subtitle: `4 fatture · ${a.amount}`,
-      text: "4 fatture pronte per il Sistema di Interscambio:\n• 2026/151 — Galleria Moderna — € 2.196\n• 2026/152 — Acme S.r.l. — € 1.220\n• 2026/153 — Studio Bianchi — € 1.464\n• 2026/154 — Verdi Forniture — € 1.360\n" + `Totale: ${a.amount}`,
+      rows: [
+        { label: "2026/151", value: "Galleria Moderna · € 2.196" },
+        { label: "2026/152", value: "Acme S.r.l. · € 1.220" },
+        { label: "2026/153", value: "Studio Bianchi · € 1.464" },
+        { label: "2026/154", value: "Verdi Forniture · € 1.360" },
+        { label: "Totale", value: a.amount, strong: true },
+      ],
     };
-  return { kind: "doc", title: "Anteprima", subtitle: a.client, text: a.title };
+  return { kind: "doc", title: "Anteprima", subtitle: a.client, rows: [{ label: "Oggetto", value: a.title }] };
 }
+
+/** Consumi AI del mese (azioni eseguite da Faro sul totale del piano). */
+export const AI_USAGE = { used: 1280, total: 2000 };
+/** Percentuale di consumo AI (0-100), usata da meter e pulsante My Value Center. */
+export const AI_USAGE_PCT = Math.round((AI_USAGE.used / AI_USAGE.total) * 100);
 
 /** Formatta un importo in euro all'italiana. */
 export const fmt = (n: number) => "€ " + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
